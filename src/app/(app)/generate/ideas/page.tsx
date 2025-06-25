@@ -1,6 +1,6 @@
 'use client';
-import { useState } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useState, useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { generateBlogIdeas, GenerateBlogIdeasOutput } from '@/ai/flows/generate-blog-ideas';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -55,7 +55,7 @@ function SubmitButton() {
 
 export default function GenerateIdeasPage() {
   const initialState: FormState = { ideas: null, error: null };
-  const [state, formAction] = useFormState(generateIdeasAction, initialState);
+  const [state, formAction] = useActionState(generateIdeasAction, initialState);
 
   return (
     <div className="grid gap-8">

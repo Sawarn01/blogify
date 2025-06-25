@@ -22,11 +22,9 @@ import {
   Settings,
   CreditCard,
   LogOut,
-  ChevronDown,
   User,
-  Badge,
 } from 'lucide-react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -37,6 +35,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/use-auth';
+import { auth, isFirebaseConfigured } from '@/lib/firebase';
+import { signOut } from 'firebase/auth';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 
 const menuItems = [
   {
@@ -45,7 +48,7 @@ const menuItems = [
     icon: LayoutDashboard,
   },
   {
-    href: '/generate/ideas',
+    href: '/generate',
     label: 'Generate Post',
     icon: FilePlus2,
   },
@@ -64,6 +67,18 @@ const menuItems = [
 function AppSidebar() {
   const pathname = usePathname();
   const { open } = useSidebar();
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    if (!auth) return;
+    try {
+      await signOut(auth);
+      router.push('/');
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "Logout Failed", description: error.message });
+    }
+  };
 
   return (
     <Sidebar>
@@ -82,7 +97,7 @@ function AppSidebar() {
                 isActive={pathname.startsWith(item.href)}
                 tooltip={{ children: item.label }}
               >
-                <Link href={item.href}>
+                <Link href={item.href === '/generate' ? '/generate/ideas' : item.href}>
                   <item.icon />
                   <span>{item.label}</span>
                 </Link>
@@ -95,11 +110,9 @@ function AppSidebar() {
         <div className="border-t -mx-2 pt-2">
             <SidebarMenu>
                 <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip={{children: 'Logout'}}>
-                        <Link href="/">
-                            <LogOut/>
-                            <span>Logout</span>
-                        </Link>
+                    <SidebarMenuButton onClick={handleLogout} tooltip={{children: 'Logout'}} disabled={!isFirebaseConfigured}>
+                        <LogOut/>
+                        <span>Logout</span>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
             </SidebarMenu>
@@ -110,36 +123,52 @@ function AppSidebar() {
 }
 
 function UserMenu() {
+    const { appUser } = useAuth();
+    const router = useRouter();
+    const { toast } = useToast();
+
+    const handleLogout = async () => {
+        if (!auth) return;
+        try {
+          await signOut(auth);
+          router.push('/');
+        } catch (error: any) {
+            toast({ variant: "destructive", title: "Logout Failed", description: error.message });
+        }
+    };
+    
+    if (!appUser) return null;
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src="https://placehold.co/100x100.png" alt="@shadcn" data-ai-hint="user avatar" />
-                  <AvatarFallback>U</AvatarFallback>
+                  <AvatarImage src={appUser.photoURL || `https://placehold.co/100x100.png`} alt={appUser.displayName || 'User'} data-ai-hint="user avatar" />
+                  <AvatarFallback>{appUser.displayName?.charAt(0).toUpperCase() || appUser.email?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">user@example.com</p>
+                  <p className="text-sm font-medium leading-none">{appUser.displayName || appUser.email}</p>
                   <p className="text-xs leading-none text-muted-foreground">
-                    Free Plan
+                    {appUser.subscription.plan} Plan
                   </p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push('/account')}>
                 <User className="mr-2 h-4 w-4" />
-                <span>Profile</span>
+                <span>Account</span>
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push('/billing')}>
                 <CreditCard className="mr-2 h-4 w-4" />
                 <span>Billing</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout} disabled={!isFirebaseConfigured}>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Log out</span>
               </DropdownMenuItem>
@@ -149,7 +178,16 @@ function UserMenu() {
 }
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  // Get cookie for defaultOpen state
+  const { user, appUser, loading } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  React.useEffect(() => {
+    if (!loading && !user && isFirebaseConfigured) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+  
   const [defaultOpen, setDefaultOpen] = React.useState(true);
 
   React.useEffect(() => {
@@ -160,6 +198,27 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         }
     }
   }, []);
+  
+  if (loading || (!user && isFirebaseConfigured) || (!appUser && isFirebaseConfigured)) {
+      return null;
+  }
+
+  if (!isFirebaseConfigured) {
+    return (
+      <div className="flex h-screen w-screen flex-col items-center justify-center gap-4 bg-background p-4 text-center">
+        <Logo />
+        <h1 className="text-2xl font-bold font-headline">Welcome to Blogify AI</h1>
+        <p className="max-w-md text-muted-foreground">
+          To get started, please configure your Firebase credentials in a <strong>.env</strong> file. Check the browser console for more details and instructions.
+        </p>
+        <div className="mt-4">
+            {children}
+        </div>
+      </div>
+    )
+  }
+  
+  const generationsLeft = appUser.subscription.generationsLimit - appUser.subscription.generationsUsed;
 
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
@@ -169,18 +228,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <SidebarTrigger className="md:hidden"/>
                 <div className="flex-1">
                     <h1 className="text-lg font-semibold md:text-xl font-headline">
-                        {menuItems.find(item => item.href === usePathname())?.label || 'Dashboard'}
+                        {menuItems.find(item => pathname.startsWith(item.href))?.label || 'Dashboard'}
                     </h1>
                 </div>
                 <div className="flex items-center gap-4">
-                  <Badge variant="outline">3 / 3 Generations Left</Badge>
-                  <Button asChild size="sm">
-                    <Link href="/billing">Upgrade</Link>
-                  </Button>
+                  <Badge variant="outline">{generationsLeft} / {appUser.subscription.generationsLimit} Generations Left</Badge>
+                  {appUser.subscription.plan === 'Free' && (
+                    <Button asChild size="sm">
+                        <Link href="/billing">Upgrade</Link>
+                    </Button>
+                  )}
                 </div>
                 <UserMenu />
             </header>
-            <main className="flex-1 p-4 sm:p-6 bg-secondary/50">
+            <main className="flex-1 p-4 sm:p-6 bg-secondary/50 min-h-[calc(100vh-3.5rem)]">
                 {children}
             </main>
         </SidebarInset>

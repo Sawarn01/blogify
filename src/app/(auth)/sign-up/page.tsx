@@ -68,12 +68,15 @@ export default function SignUpPage() {
 
     const handleSignUp = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!auth) return;
+        if (!auth) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Authentication is not configured.' });
+            return;
+        }
         setIsLoading(true);
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             await createNewUserDocument(userCredential.user);
-            router.push('/dashboard');
+            // onAuthStateChanged in useAuth will handle the redirect
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Sign-up failed', description: error.message });
         } finally {
@@ -82,13 +85,16 @@ export default function SignUpPage() {
     };
 
     const handleGoogleSignUp = async () => {
-        if (!auth) return;
+        if (!auth) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Authentication is not configured.' });
+            return;
+        }
         setIsGoogleLoading(true);
         const provider = new GoogleAuthProvider();
         try {
             const result = await signInWithPopup(auth, provider);
             await createNewUserDocument(result.user);
-            router.push('/dashboard');
+            // onAuthStateChanged in useAuth will handle the redirect
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Google Sign-up failed', description: error.message });
         } finally {

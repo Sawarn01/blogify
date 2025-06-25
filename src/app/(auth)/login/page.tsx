@@ -66,14 +66,35 @@ export default function LoginPage() {
         }
     };
 
+    const handleLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!auth) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Authentication is not configured.' });
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            await signInWithEmailAndPassword(auth, email, password);
+            // onAuthStateChanged in useAuth will handle the redirect
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Login failed', description: error.message });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const handleGoogleLogin = async () => {
-        if (!auth) return;
+        if (!auth) {
+             toast({ variant: 'destructive', title: 'Error', description: 'Authentication is not configured.' });
+            return;
+        }
         setIsGoogleLoading(true);
         const provider = new GoogleAuthProvider();
         try {
             const result = await signInWithPopup(auth, provider);
             await createNewUserDocument(result.user);
-            router.push('/dashboard');
+            // onAuthStateChanged in useAuth will handle the redirect
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Google Sign-in failed', description: error.message });
         } finally {

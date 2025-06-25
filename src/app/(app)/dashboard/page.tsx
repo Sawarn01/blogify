@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { PlusCircle, FileText, Loader2, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '@/lib/firebase';
 import type { Post } from '@/lib/types';
 
@@ -26,10 +26,14 @@ export default function DashboardPage() {
         setIsLoading(true);
         try {
             const postsCollectionRef = collection(db, 'posts');
-            const q = query(postsCollectionRef, where('userId', '==', user.uid), orderBy('createdAt', 'desc'));
+            const q = query(postsCollectionRef, where('userId', '==', user.uid));
             const querySnapshot = await getDocs(q);
             const userPosts = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
-            setPosts(userPosts);
+            
+            // Sort posts on the client-side by creation date, newest first.
+            const sortedPosts = userPosts.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+
+            setPosts(sortedPosts);
         } catch (error) {
             console.error("Error fetching posts: ", error);
         } finally {

@@ -14,12 +14,16 @@ import type { User } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 
-function GoogleIcon() {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M15.545 6.558C16.803 5.263 18.22 4.455 19.89 4.184A9.916 9.916 0 0 1 22 14c0 2.22-.72 4.29-1.94 5.92-.23.3-.47.58-.7.86A9.94 9.94 0 0 1 12 22a10 10 0 0 1-9.5-6.635C2.022 13.886 2 12.95 2 12c0-2.31.65-4.44 1.76-6.22.2-.32.43-.62.66-.92A10 10 0 0 1 12 2a9.965 9.965 0 0 1 3.545 4.558z"/><path d="M12 12h10"/>
-        </svg>
-    )
+function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" {...props}>
+      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+      <path fill="none" d="M0 0h48v48H0z"/>
+    </svg>
+  );
 }
 
 export default function SignUpPage() {
@@ -106,8 +110,8 @@ export default function SignUpPage() {
       </CardHeader>
       <CardContent className="grid gap-4">
         <Button variant="outline" className="w-full" onClick={handleGoogleSignUp} disabled={isLoading || isGoogleLoading || isAuthDisabled}>
-            {isGoogleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <GoogleIcon />}
-          <span className="ml-2">Sign up with Google</span>
+            {isGoogleLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : <GoogleIcon className="h-4 w-4" />}
+          <span>Sign up with Google</span>
         </Button>
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
@@ -129,7 +133,7 @@ export default function SignUpPage() {
             <Input id="password" type="password" required value={password} onChange={e => setPassword(e.target.value)} disabled={isLoading || isGoogleLoading || isAuthDisabled} />
             </div>
             <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isLoading || isGoogleLoading || isAuthDisabled}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                {isLoading && <Loader2 className="h-4 w-4 animate-spin"/>}
                 Create account
             </Button>
         </form>

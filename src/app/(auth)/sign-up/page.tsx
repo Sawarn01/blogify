@@ -7,10 +7,8 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { auth, db, isFirebaseConfigured } from '@/lib/firebase';
+import { auth, isFirebaseConfigured } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
-import type { User } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 
@@ -43,29 +41,6 @@ export default function SignUpPage() {
         }
     }, [user, loading, router]);
 
-    const createNewUserDocument = async (firebaseUser: import('firebase/auth').User) => {
-        if (!db) return;
-        const userDocRef = doc(db, 'users', firebaseUser.uid);
-        const userDoc = await getDoc(userDocRef);
-
-        if (!userDoc.exists()) {
-            const newUser: User = {
-                uid: firebaseUser.uid,
-                email: firebaseUser.email,
-                displayName: firebaseUser.displayName,
-                photoURL: firebaseUser.photoURL,
-                subscription: {
-                    plan: 'Free',
-                    status: 'active',
-                    generationsUsed: 0,
-                    generationsLimit: 3,
-                    lifetimeGenerations: 0,
-                },
-            };
-            await setDoc(userDocRef, newUser);
-        }
-    };
-
     const handleSignUp = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!auth) {
@@ -74,9 +49,8 @@ export default function SignUpPage() {
         }
         setIsLoading(true);
         try {
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            await createNewUserDocument(userCredential.user);
-            // onAuthStateChanged in useAuth will handle the redirect
+            await createUserWithEmailAndPassword(auth, email, password);
+            // onAuthStateChanged in useAuth will handle the redirect and data creation
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Sign-up failed', description: error.message });
         } finally {
@@ -92,9 +66,8 @@ export default function SignUpPage() {
         setIsGoogleLoading(true);
         const provider = new GoogleAuthProvider();
         try {
-            const result = await signInWithPopup(auth, provider);
-            await createNewUserDocument(result.user);
-            // onAuthStateChanged in useAuth will handle the redirect
+            await signInWithPopup(auth, provider);
+            // onAuthStateChanged in useAuth will handle the redirect and data creation
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Google Sign-up failed', description: error.message });
         } finally {

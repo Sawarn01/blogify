@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { auth, db, isFirebaseConfigured } from '@/lib/firebase';
 import type { User as AppUser } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
@@ -30,10 +30,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
-      if (firebaseUser) {
-        setUser(firebaseUser);
-      } else {
-        setUser(null);
+      setUser(firebaseUser);
+      if (!firebaseUser) {
         setAppUser(null);
         setLoading(false);
       }
@@ -43,22 +41,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (user && isFirebaseConfigured && db) {
-        const userDocRef = doc(db, 'users', user.uid);
-        const unsubscribeSnapshot = onSnapshot(userDocRef, (doc) => {
-            if (doc.exists()) {
-                setAppUser(doc.data() as AppUser);
-            } else {
-                setAppUser(null);
-            }
-            setLoading(false);
-        }, (error) => {
-            console.error("Error fetching user document:", error);
-            setLoading(false);
-        });
-        return () => unsubscribeSnapshot();
-    } else if (!user) {
-      setLoading(false);
+    if (user && db) {
+      const userDocRef = doc(db, 'users', user.uid);
+      
+      const unsubscribe = onSnapshot(userDocRef, (snapshot) => {
+        if (snapshot.exists()) {
+          setAppUser(snapshot.data() as AppUser);
+          setLoading(false);
+        } else {
+          // User is authenticated, but no document exists. Let's create it.
+          const newUser: AppUser = {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            photoURL: user.photoURL,
+            subscription: {
+              plan: 'Free',
+              status: 'active',
+              generationsUsed: 0,
+              generationsLimit: 3,
+              lifetimeGenerations: 0,
+            },
+          };
+          setDoc(userDocRef, newUser).finally(() => {
+            // After creating, the snapshot listener will fire again with the new data.
+            // We can set loading to false here, but it will be set on the re-fire anyway.
+            // If we don't set it, the loader will show until the doc is confirmed created.
+          });
+        }
+      }, (error) => {
+        console.error("Error with user document snapshot:", error);
+        setAppUser(null);
+        setLoading(false);
+      });
+
+      return () => unsubscribe();
     }
   }, [user]);
 

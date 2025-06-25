@@ -7,12 +7,10 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { auth, db, isFirebaseConfigured } from '@/lib/firebase';
+import { auth, isFirebaseConfigured } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import type { User } from '@/lib/types';
 
 function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -43,29 +41,6 @@ export default function LoginPage() {
         }
     }, [user, loading, router]);
     
-    const createNewUserDocument = async (firebaseUser: import('firebase/auth').User) => {
-        if (!db) return;
-        const userDocRef = doc(db, 'users', firebaseUser.uid);
-        const userDoc = await getDoc(userDocRef);
-
-        if (!userDoc.exists()) {
-            const newUser: User = {
-                uid: firebaseUser.uid,
-                email: firebaseUser.email,
-                displayName: firebaseUser.displayName,
-                photoURL: firebaseUser.photoURL,
-                subscription: {
-                    plan: 'Free',
-                    status: 'active',
-                    generationsUsed: 0,
-                    generationsLimit: 3,
-                    lifetimeGenerations: 0,
-                },
-            };
-            await setDoc(userDocRef, newUser);
-        }
-    };
-
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!auth) {
@@ -76,7 +51,7 @@ export default function LoginPage() {
         setIsLoading(true);
         try {
             await signInWithEmailAndPassword(auth, email, password);
-            // onAuthStateChanged in useAuth will handle the redirect
+            // onAuthStateChanged in useAuth will handle the redirect and data creation
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Login failed', description: error.message });
         } finally {
@@ -92,9 +67,8 @@ export default function LoginPage() {
         setIsGoogleLoading(true);
         const provider = new GoogleAuthProvider();
         try {
-            const result = await signInWithPopup(auth, provider);
-            await createNewUserDocument(result.user);
-            // onAuthStateChanged in useAuth will handle the redirect
+            await signInWithPopup(auth, provider);
+            // onAuthStateChanged in useAuth will handle the redirect and data creation
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Google Sign-in failed', description: error.message });
         } finally {

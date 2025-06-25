@@ -7,10 +7,12 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { auth, isFirebaseConfigured } from '@/lib/firebase';
+import { auth, db, isFirebaseConfigured } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import type { User } from '@/lib/types';
 
 function GoogleIcon() {
     return (
@@ -51,14 +53,36 @@ export default function LoginPage() {
         }
     };
     
+    const createNewUserDocument = async (firebaseUser: import('firebase/auth').User) => {
+        if (!db) return;
+        const userDocRef = doc(db, 'users', firebaseUser.uid);
+        const userDoc = await getDoc(userDocRef);
+
+        if (!userDoc.exists()) {
+            const newUser: User = {
+                uid: firebaseUser.uid,
+                email: firebaseUser.email,
+                displayName: firebaseUser.displayName,
+                photoURL: firebaseUser.photoURL,
+                subscription: {
+                    plan: 'Free',
+                    status: 'active',
+                    generationsUsed: 0,
+                    generationsLimit: 3,
+                    lifetimeGenerations: 0,
+                },
+            };
+            await setDoc(userDocRef, newUser);
+        }
+    };
+
     const handleGoogleLogin = async () => {
         if (!auth) return;
         setIsGoogleLoading(true);
         const provider = new GoogleAuthProvider();
         try {
-            await signInWithPopup(auth, provider);
-            // Note: We don't create user doc here, as that is handled on sign-up.
-            // A more robust system might use a cloud function to create the doc if it doesn't exist upon any sign-in.
+            const result = await signInWithPopup(auth, provider);
+            await createNewUserDocument(result.user);
             router.push('/dashboard');
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Google Sign-in failed', description: error.message });

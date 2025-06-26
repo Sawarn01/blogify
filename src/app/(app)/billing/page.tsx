@@ -21,19 +21,24 @@ function PayPalButtonWrapper({ plan, variant = 'default' }: { plan: Plan, varian
     const { user, appUser } = useAuth();
     const [isProcessing, setIsProcessing] = useState(false);
     
-    const handleCreateOrder = async () => {
+    const handleCreateOrder = async (): Promise<string> => {
         if (!planPrices[plan]) {
-             toast({ variant: 'destructive', title: 'Error', description: 'Invalid subscription plan selected.' });
-             return '';
+             const error = new Error('Invalid subscription plan selected.');
+             toast({ variant: 'destructive', title: 'Error', description: error.message });
+             throw error;
         }
         setIsProcessing(true);
         try {
             const order = await createOrder(plan);
+            if (!order?.id) {
+                throw new Error('Server did not return an order ID.');
+            }
             return order.id;
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not create PayPal order. Please try again.' });
+            const errorMessage = error instanceof Error ? error.message : 'Could not create PayPal order. Please try again.';
+            toast({ variant: 'destructive', title: 'Error', description: errorMessage });
             setIsProcessing(false);
-            return '';
+            throw new Error(errorMessage);
         }
     };
     
@@ -52,15 +57,14 @@ function PayPalButtonWrapper({ plan, variant = 'default' }: { plan: Plan, varian
                 await updateDoc(userRef, {
                     'subscription.plan': plan,
                     'subscription.status': 'active',
-                    // This simulates a subscription by unlocking features.
-                    // For real recurring subscriptions, a more complex setup with webhooks is needed.
                     'subscription.generationsLimit': 9999, 
                 });
 
                 toast({ title: 'Success!', description: `You have successfully subscribed to the ${plan} plan.` });
                 router.push('/account');
             } else {
-                 toast({ variant: 'destructive', title: 'Payment Failed', description: captureData.error?.message || 'Your payment was not completed. Please try again.' });
+                 const errorDescription = captureData?.details?.[0]?.description || captureData?.message || 'Your payment was not completed. Please try again.';
+                 toast({ variant: 'destructive', title: 'Payment Failed', description: errorDescription });
             }
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Error', description: error.message || 'An error occurred while processing your payment.' });
@@ -70,6 +74,7 @@ function PayPalButtonWrapper({ plan, variant = 'default' }: { plan: Plan, varian
     };
     
     const handleOnError = (err: any) => {
+        // The toast is already shown in handleCreateOrder, so this is a fallback.
         toast({ variant: 'destructive', title: 'PayPal Error', description: 'An error occurred with the PayPal transaction. Please try again.' });
         setIsProcessing(false);
     };

@@ -22,13 +22,11 @@ function PayPalButtonWrapper({ plan, variant = 'default' }: { plan: Plan, varian
     const [isProcessing, setIsProcessing] = useState(false);
     
     const handleCreateOrder = async (): Promise<string> => {
-        if (!planPrices[plan]) {
-             const error = new Error('Invalid subscription plan selected.');
-             toast({ variant: 'destructive', title: 'Error', description: error.message });
-             throw error;
-        }
         setIsProcessing(true);
         try {
+            if (!planPrices[plan]) {
+                throw new Error('Invalid subscription plan selected.');
+            }
             const order = await createOrder(plan);
             if (!order?.id) {
                 throw new Error('Server did not return an order ID.');
@@ -37,18 +35,20 @@ function PayPalButtonWrapper({ plan, variant = 'default' }: { plan: Plan, varian
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Could not create PayPal order. Please try again.';
             toast({ variant: 'destructive', title: 'Error Creating Order', description: errorMessage });
+            throw new Error(errorMessage); // Throws error for PayPal SDK to catch
+        } finally {
+            // Hide the loader once the order is created, so the user can interact with the PayPal UI.
             setIsProcessing(false);
-            throw new Error(errorMessage);
         }
     };
     
     const handleOnApprove = async (data: any) => {
         if (!user || !db) {
             toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to subscribe.' });
-            setIsProcessing(false);
             return;
         }
-
+        
+        setIsProcessing(true); // Show loader for payment capture
         try {
             const captureData = await captureOrder(data.orderID);
             
@@ -79,6 +79,10 @@ function PayPalButtonWrapper({ plan, variant = 'default' }: { plan: Plan, varian
         setIsProcessing(false);
     };
 
+    const handleOnCancel = () => {
+        setIsProcessing(false);
+    }
+
     if (!user || !appUser) {
          return <Button disabled className="w-full">Loading User...</Button>
     }
@@ -100,6 +104,7 @@ function PayPalButtonWrapper({ plan, variant = 'default' }: { plan: Plan, varian
                 createOrder={handleCreateOrder}
                 onApprove={handleOnApprove}
                 onError={handleOnError}
+                onCancel={handleOnCancel}
                 disabled={isProcessing}
                 forceReRender={[plan]}
             />

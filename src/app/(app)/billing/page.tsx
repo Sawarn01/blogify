@@ -52,8 +52,9 @@ function PayPalButtonWrapper({ plan, variant = 'default' }: { plan: Plan, varian
                 await updateDoc(userRef, {
                     'subscription.plan': plan,
                     'subscription.status': 'active',
-                    // Optionally reset usage limits here
-                    'subscription.generationsLimit': 9999, // Or a specific number for paid plans
+                    // This simulates a subscription by unlocking features.
+                    // For real recurring subscriptions, a more complex setup with webhooks is needed.
+                    'subscription.generationsLimit': 9999, 
                 });
 
                 toast({ title: 'Success!', description: `You have successfully subscribed to the ${plan} plan.` });
@@ -90,7 +91,7 @@ function PayPalButtonWrapper({ plan, variant = 'default' }: { plan: Plan, varian
                 </div>
             )}
             <PayPalButtons
-                style={{ layout: 'vertical', label: 'subscribe' }}
+                style={{ layout: 'vertical' }}
                 createOrder={handleCreateOrder}
                 onApprove={handleOnApprove}
                 onError={handleOnError}
@@ -134,7 +135,7 @@ export default function BillingPage() {
     const paypalOptions: ReactPayPalScriptOptions = {
         clientId: paypalClientId,
         currency: "USD",
-        intent: "subscription",
+        intent: "capture",
     };
 
   return (

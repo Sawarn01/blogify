@@ -94,7 +94,7 @@ export default function AccountPage() {
             </div>
             <div className="mt-4 p-4 border rounded-lg">
                 <h3 className="font-semibold">Usage</h3>
-                <p className="text-sm text-muted-foreground">You have used <span className="font-bold">{subscription.generationsUsed}</span> of your <span className="font-bold">{subscription.generationsLimit}</span> generations this month.</p>
+                <p className="text-sm text-muted-foreground">You have used <span className="font-bold">{subscription.generationsUsed}</span> of your <span className="font-bold">{subscription.plan === 'Free' ? subscription.generationsLimit : 'Unlimited'}</span> generations this month.</p>
                 <p className="text-sm text-muted-foreground mt-2">Lifetime generations: <span className="font-bold">{subscription.lifetimeGenerations}</span>.</p>
             </div>
         </CardContent>

@@ -84,7 +84,7 @@ export default function AccountPage() {
             <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div>
                     <h3 className="font-semibold">Current Plan</h3>
-                    <p className="text-sm text-muted-foreground">You are currently on the <Badge variant="secondary">{subscription.plan}</Badge> plan.</p>
+                    <div className="text-sm text-muted-foreground">You are currently on the <Badge variant="secondary">{subscription.plan}</Badge> plan.</div>
                 </div>
                  {subscription.plan === 'Free' && (
                     <Button asChild>

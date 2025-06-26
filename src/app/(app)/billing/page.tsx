@@ -36,7 +36,7 @@ function PayPalButtonWrapper({ plan, variant = 'default' }: { plan: Plan, varian
             return order.id;
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Could not create PayPal order. Please try again.';
-            toast({ variant: 'destructive', title: 'Error', description: errorMessage });
+            toast({ variant: 'destructive', title: 'Error Creating Order', description: errorMessage });
             setIsProcessing(false);
             throw new Error(errorMessage);
         }
@@ -67,15 +67,15 @@ function PayPalButtonWrapper({ plan, variant = 'default' }: { plan: Plan, varian
                  toast({ variant: 'destructive', title: 'Payment Failed', description: errorDescription });
             }
         } catch (error: any) {
-            toast({ variant: 'destructive', title: 'Error', description: error.message || 'An error occurred while processing your payment.' });
+            toast({ variant: 'destructive', title: 'Error Processing Payment', description: error.message || 'An error occurred while processing your payment.' });
         } finally {
             setIsProcessing(false);
         }
     };
     
     const handleOnError = (err: any) => {
-        // The toast is already shown in handleCreateOrder, so this is a fallback.
-        toast({ variant: 'destructive', title: 'PayPal Error', description: 'An error occurred with the PayPal transaction. Please try again.' });
+        const errorMessage = err.message || 'An error occurred with the PayPal transaction. Please try again.';
+        toast({ variant: 'destructive', title: 'PayPal Error', description: errorMessage });
         setIsProcessing(false);
     };
 

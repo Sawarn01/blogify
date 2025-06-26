@@ -19,7 +19,10 @@ export async function createOrder(plan: Plan) {
         return { id: order.id };
     } catch (error) {
         console.error("Failed to create order:", error);
-        throw new Error('Failed to create PayPal order.');
+        if (error instanceof Error) {
+            throw new Error(error.message);
+        }
+        throw new Error('An unknown error occurred while creating PayPal order.');
     }
 }
 
@@ -30,6 +33,9 @@ export async function captureOrder(orderID: string) {
         return captureData;
     } catch (error) {
         console.error("Failed to capture order:", error);
-        throw new Error('Failed to capture PayPal payment.');
+        if (error instanceof Error) {
+            throw new Error(error.message);
+        }
+        throw new Error('An unknown error occurred while capturing PayPal payment.');
     }
 }
